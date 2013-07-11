@@ -21,8 +21,8 @@ from oauth2client.client import OAuth2WebServerFlow
 from oauth2client.tools import run
 
 
-client_id = '[copy-paste here]'
-client_secret = '[copy-paste here]'
+client_id = '[paste your client id here]'
+client_secret = '[paste your client secret here]'
 ROOT = '[path to directory to store data in]'
 numBlocks = 100 #will give you 100,000 most recent data points from user history
 
@@ -72,17 +72,20 @@ def main(argv):
   service = build('latitude', 'v1', http=http) #
 
   try:
-    earliestTs = '99999999999999999999' #max ts (i.e., start at most recent readings)
+    earliestTs = '9999999999999' #max ts (i.e., start at most recent readings)
+    
     #loop until all pages processed:
-    history, data = [], [None,None]
-    while len(history)<numBlocks and len(data)>1:
-        data = service.location().list(granularity='best', max_time=earliestTs, max_results='1000').execute()
+    history = []
+    data = service.location().list(granularity='best', max_time=earliestTs, max_results='1000').execute()
+    while len(history)<numBlocks and 'items' in data and len(data['items'])>1:
         history.append(data['items'])
         #retrieve earliest timestamp in this batch, so that we can go back even further in next batch
+        print data
         earliestTs = int(history[-1][-1]['timestampMs'])
         print 'earliestTs',earliestTs
         print '%i blocks retrieved, going back as far as %i (time)'%(len(history), earliestTs)
-        time.sleep(1)
+        time.sleep(2)
+        data = service.location().list(granularity='best', max_time=earliestTs, max_results='1000').execute()
     history = [item for sublist in history for item in sublist]
     pickle.dump(history, open(ROOT + 'loc_history.p','w'))
     print 'saved %i items'%len(history)
